@@ -11,12 +11,20 @@
     <form id="trends-form">
         <label for="professions">Select professions:</label>
         <select id="professions" name="professions" multiple>
-            <!-- Add options here -->
+            <option value="Software Engineer">Software Engineer</option>
+            <option value="Data Scientist">Data Scientist</option>
+            <option value="Network Engineer">Network Engineer</option>
+            <option value="Cybersecurity Specialist">Cybersecurity Specialist</option>
+            <!-- Add more options as needed -->
         </select>
         <br>
         <label for="locations">Select locations:</label>
         <select id="locations" name="locations" multiple>
-            <!-- Add options here -->
+            <option value="US">United States</option>
+            <option value="CA">Canada</option>
+            <option value="GB">United Kingdom</option>
+            <option value="AU">Australia</option>
+            <!-- Add more options as needed -->
         </select>
         <br>
         <button type="button" id="get-trends-btn">Get Trends</button>
@@ -45,9 +53,9 @@
             window.trendChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    datasets: professions.map((profession, index) => ({
-                        label: `${profession} in ${locations[index]}`,
-                        data: mergedData.filter(d => d.profession === profession && d.location === locations[index]),
+                    datasets: mergedData.map((data, index) => ({
+                        label: `Profession: ${professions[index % professions.length]}, Location: ${locations[Math.floor(index / professions.length)]}`,
+                        data: data.map(d => ({ x: new Date(d.date), y: d.value })),
                         borderColor: getRandomColor(),
                         fill: false
                     }))
