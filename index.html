@@ -2,103 +2,62 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Job Trends Visualization</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Trends</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/moment"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
 </head>
 <body>
-    <h1>Job Trends Visualization</h1>
-    <label for="professions">Professions (select multiple):</label>
-    <select id="professions" multiple>
-        <option>Software Engineer</option>
-        <option>Data Scientist</option>
-        <option>Network Engineer</option>
-        <option>Cybersecurity Specialist</option>
-    </select>
-    <br>
-    <label for="locations">Locations (select multiple):</label>
-    <select id="locations" multiple>
-        <option value="US">United States</option>
-        <option value="CA">Canada</option>
-        <option value="GB">United Kingdom</option>
-        <option value="AU">Australia</option>
-    </select>
-    <br>
-    <button id="get-trends-btn">Get Trends</button>
-    <br><br>
-    <canvas id="trendChart"></canvas>
-
+    <h1>Job Trends</h1>
+    <form id="trends-form">
+        <label for="professions">Select professions:</label>
+        <select id="professions" name="professions" multiple>
+            <!-- Add options here -->
+        </select>
+        <br>
+        <label for="locations">Select locations:</label>
+        <select id="locations" name="locations" multiple>
+            <!-- Add options here -->
+        </select>
+        <br>
+        <button type="button" id="get-trends-btn">Get Trends</button>
+    </form>
+    <canvas id="trendChart" width="400" height="200"></canvas>
     <script>
-        let chartInstance;
-        const colors = [
-            'rgba(75, 192, 192, 1)',
-            'rgba(255, 99, 132, 1)',
-            'rgba(54, 162, 235, 1)',
-            'rgba(255, 206, 86, 1)',
-            'rgba(153, 102, 255, 1)',
-            'rgba(255, 159, 64, 1)',
-            'rgba(99, 255, 132, 1)',
-            'rgba(192, 75, 75, 1)'
-        ];
-
         document.getElementById('get-trends-btn').addEventListener('click', async () => {
-            const professionsSelect = document.getElementById('professions');
-            const locationsSelect = document.getElementById('locations');
-            const selectedProfessions = Array.from(professionsSelect.selectedOptions).map(option => option.text);
-            const selectedLocations = Array.from(locationsSelect.selectedOptions).map(option => option.value);
-
-            const results = await Promise.all(selectedProfessions.map(async profession => {
-                const locationResults = await Promise.all(selectedLocations.map(async location => {
-                    const response = await fetch(`http://localhost:8084/trends?profession=${profession}&location=${location}`);
-                    const data = await response.json();
-                    console.log(`Fetched data for ${profession} in ${location}:`, data);
-                    return { profession, location, data };
-                }));
-                return locationResults;
-            }));
-
-            console.log("Fetched results:", results);
-
-            // Merge and plot the data
-            const mergedData = [];
-            results.forEach(locationResults => {
-                locationResults.forEach(result => {
-                    if (result.data.length > 0) {
-                        mergedData.push(result.data);
-                    }
-                });
-            });
-
-            console.log("Merged data:", mergedData);
-
-            // Destroy the existing chart if it exists
-            if (chartInstance) {
-                chartInstance.destroy();
+            const professions = Array.from(document.getElementById('professions').selectedOptions).map(opt => opt.value);
+            const locations = Array.from(document.getElementById('locations').selectedOptions).map(opt => opt.value);
+            
+            const promises = [];
+            for (const profession of professions) {
+                for (const location of locations) {
+                    const url = `https://trends-service-bz32sn4tyq-uc.a.run.app/trends?profession=${profession}&location=${location}`;
+                    promises.push(fetch(url).then(response => response.json()));
+                }
             }
-
-            // Plot the data
+            
+            const results = await Promise.all(promises);
+            const mergedData = results.flat();
+            
             const ctx = document.getElementById('trendChart').getContext('2d');
-            chartInstance = new Chart(ctx, {
+            if (window.trendChart) {
+                window.trendChart.destroy();
+            }
+            window.trendChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    datasets: mergedData.flatMap((data, index) => {
-                        const color = colors[index % colors.length];
-                        return {
-                            label: `Profession: ${results[Math.floor(index / selectedLocations.length)][0].profession}, Location: ${results[Math.floor(index / selectedLocations.length)][index % selectedLocations.length].location}`,
-                            data: data.map(item => ({ x: item.date, y: item.value })),
-                            borderColor: color,
-                            backgroundColor: color,
-                            fill: false
-                        };
-                    })
+                    datasets: professions.map((profession, index) => ({
+                        label: `${profession} in ${locations[index]}`,
+                        data: mergedData.filter(d => d.profession === profession && d.location === locations[index]),
+                        borderColor: getRandomColor(),
+                        fill: false
+                    }))
                 },
                 options: {
                     scales: {
                         x: {
                             type: 'time',
                             time: {
-                                unit: 'month'
+                                unit: 'week'
                             },
                             title: {
                                 display: true,
@@ -108,17 +67,22 @@
                         y: {
                             title: {
                                 display: true,
-                                text: 'Trend Score'
+                                text: 'Trend Value'
                             }
                         }
                     }
                 }
             });
-
-            // Store fetched results in window for Puppeteer to access
-            window['fetchedResults'] = results;
-            window['mergedData'] = mergedData;
         });
+
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
     </script>
 </body>
 </html>
