@@ -46,7 +46,7 @@
             
             const results = await Promise.all(promises);
             const mergedData = results.flat();
-            
+
             const ctx = document.getElementById('trendChart').getContext('2d');
             if (window.trendChart && typeof window.trendChart.destroy === 'function') {
                 window.trendChart.destroy();
@@ -54,12 +54,23 @@
             window.trendChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    datasets: mergedData.map((data, index) => ({
-                        label: `Profession: ${professions[index % professions.length]}, Location: ${locations[Math.floor(index / professions.length)]}`,
-                        data: data.map(d => ({ x: new Date(d.date), y: d.value })),
-                        borderColor: getRandomColor(),
-                        fill: false
-                    }))
+                    datasets: mergedData.map((data, index) => {
+                        if (Array.isArray(data)) {
+                            return {
+                                label: `Profession: ${professions[index % professions.length]}, Location: ${locations[Math.floor(index / professions.length)]}`,
+                                data: data.map(d => ({ x: new Date(d.date), y: d.value })),
+                                borderColor: getRandomColor(),
+                                fill: false
+                            };
+                        } else {
+                            return {
+                                label: `Profession: ${professions[index % professions.length]}, Location: ${locations[Math.floor(index / professions.length)]}`,
+                                data: [],
+                                borderColor: getRandomColor(),
+                                fill: false
+                            };
+                        }
+                    })
                 },
                 options: {
                     scales: {
