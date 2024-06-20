@@ -47,7 +47,7 @@
             const mergedData = results.flat();
             
             const ctx = document.getElementById('trendChart').getContext('2d');
-            if (window.trendChart) {
+            if (window.trendChart && typeof window.trendChart.destroy === 'function') {
                 window.trendChart.destroy();
             }
             window.trendChart = new Chart(ctx, {
