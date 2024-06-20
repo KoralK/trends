@@ -35,7 +35,7 @@
         document.getElementById('get-trends-btn').addEventListener('click', async () => {
             const professions = Array.from(document.getElementById('professions').selectedOptions).map(opt => opt.value);
             const locations = Array.from(document.getElementById('locations').selectedOptions).map(opt => opt.value);
-            
+
             const promises = [];
             for (const profession of professions) {
                 for (const location of locations) {
@@ -43,9 +43,26 @@
                     promises.push(fetch(url).then(response => response.json()));
                 }
             }
-            
+
             const results = await Promise.all(promises);
-            const mergedData = results.flat();
+
+            // Flatten the results and map to include profession and location information
+            const mergedData = [];
+            let index = 0;
+            for (const profession of professions) {
+                for (const location of locations) {
+                    const data = results[index];
+                    if (Array.isArray(data)) {
+                        mergedData.push({
+                            label: `Profession: ${profession}, Location: ${location}`,
+                            data: data.map(d => ({ x: new Date(d.date), y: d.value })),
+                            borderColor: getRandomColor(),
+                            fill: false
+                        });
+                    }
+                    index++;
+                }
+            }
 
             const ctx = document.getElementById('trendChart').getContext('2d');
             if (window.trendChart && typeof window.trendChart.destroy === 'function') {
@@ -54,23 +71,7 @@
             window.trendChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    datasets: mergedData.map((data, index) => {
-                        if (Array.isArray(data)) {
-                            return {
-                                label: `Profession: ${professions[index % professions.length]}, Location: ${locations[Math.floor(index / professions.length)]}`,
-                                data: data.map(d => ({ x: new Date(d.date), y: d.value })),
-                                borderColor: getRandomColor(),
-                                fill: false
-                            };
-                        } else {
-                            return {
-                                label: `Profession: ${professions[index % professions.length]}, Location: ${locations[Math.floor(index / professions.length)]}`,
-                                data: [],
-                                borderColor: getRandomColor(),
-                                fill: false
-                            };
-                        }
-                    })
+                    datasets: mergedData
                 },
                 options: {
                     scales: {
